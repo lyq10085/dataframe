@@ -6,4 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(dataFrame main.cpp
         dataframe.h
         dataframe.cpp
-        slice.h)
+        slice.h
+        arena.cpp
+        arena.h
+        FeatureValue.h)
