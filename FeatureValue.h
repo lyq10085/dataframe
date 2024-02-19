@@ -117,12 +117,13 @@ public:
     ComplexFeatureValue(ComplexFeatureValue&& other)  noexcept = default;
     ComplexFeatureValue& operator= (const ComplexFeatureValue) = delete;
 
-    T value_{};
+    T value_;
     T& getValue() {
         return value_;
     }
-    void setValue(T& val) {
-        value_ = std::move(val);
+    void setValue(T&& val) {
+        assert(&value_ != nullptr);
+        value_ = val;
     }
 };
 
@@ -130,7 +131,7 @@ public:
 template<class T>
 bool setValue(FeatureValue* fv, T&& val) {
     auto cfv = static_cast<ComplexFeatureValue<T>*>(fv);
-    cfv->setValue(val);
+    cfv->setValue(std::forward<T>(val));
     return true;
 }
 

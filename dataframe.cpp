@@ -17,3 +17,21 @@ ColumnVector& DataFrame::addColumn(const std::string& name) {
     return data_.back();
 }
 
+
+size_t OldDataFrame::appendColumn(const std::string &name, const OldColumnVector &values) {
+    OldColumnVector& origin = addColumn(name);
+    origin.insert(origin.end(), values.begin(), values.end());
+}
+
+OldColumnVector& OldDataFrame::addColumn(const std::string& name) {
+    auto iter = column_table_.find(name);
+    if (iter != column_table_.end()) {
+        return data_[iter->second];
+    }
+
+    data_.emplace_back(OldColumnVector());
+    column_table_.emplace(name, data_.size() - 1);
+    column_names_.emplace_back(name);
+    return data_.back();
+}
+

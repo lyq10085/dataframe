@@ -85,9 +85,120 @@ int main() {
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
-    std::cout << "time cost: " << duration.count() << " ms\n";
-
+    std::cout << "alloc 10000000 FeatureValue time cost(arena): " << duration.count() << " ms\n";
     df.appendColumn("test_col", col);
+
+
+    start = std::chrono::high_resolution_clock::now();
+    std::vector<std::shared_ptr<FeatureValue>> origin_col;
+    for(int i =0; i < 10000000; i++) {
+        std::shared_ptr<FeatureValue> fv;
+        switch (i % 4) {
+            case 0:
+                fv = std::make_shared<ComplexFeatureValue<int>>();
+                break;
+            case 1:
+                fv = std::make_shared<ComplexFeatureValue<std::string>>();
+                break;
+            case 2:
+                fv = std::make_shared<ComplexFeatureValue<std::vector<int>>>();
+                break;
+            case 3:
+                fv = std::make_shared<ComplexFeatureValue<std::unordered_map<int, std::string>>>();
+                break;
+            default:
+                std::cout<<"unreachable"<<std::endl;
+        }
+        origin_col.push_back(fv);
+    }
+
+    end = std::chrono::high_resolution_clock::now();
+    duration = end - start;
+    std::cout << "alloc 10000000 FeatureValue time cost(make_shared): " << duration.count() << " ms\n";
+
+
+    {
+        DataFrame df1;
+        for(size_t k = 0; k < 2; k++) {
+            ColumnVector col;
+            for (size_t i = 0; i < 100000; i++) {
+                ValuePtr fv;
+                std::string s = "hello";
+                std::vector<int> vec;
+                vec.push_back(1);
+                vec.push_back(2);
+                vec.push_back(i);
+                std::unordered_map<int, std::string> map;
+                map[1] = "hello";
+                map[2] = "world";
+                map[3] = std::to_string(i);
+                switch (k % 2) {
+                    case 0:
+                        fv = df1.Allocate<int>();
+                        setValue(fv, 1);
+                        break;
+                    case 1:
+                        fv = df1.Allocate<std::string>();
+                        s = "hello";
+                        setValue(fv, std::move(s));
+                        break;
+//                    case 2:
+//                        fv = df1.Allocate<std::vector<int>>();
+//                        setValue(fv, vec);
+//                        break;
+//                    case 3:
+//                        fv = df1.Allocate<std::unordered_map<int, std::string>>();
+//                        setValue(fv, map);
+//                        break;
+                    default:
+                        std::cout << "unreachable" << std::endl;
+                }
+                col.push_back(fv);
+            }
+            df1.appendColumn("test_col" + std::to_string(k), col);
+            col.clear();
+        }
+    }
+
+
+    {
+        OldDataFrame df2;
+        for(size_t k = 0; k < 2; k++) {
+            OldColumnVector col;
+            for (size_t i = 0; i < 100000; i++) {
+                OldValuePtr fv;
+                std::string s = "hello";
+                std::vector<int> vec = {1, 2, 3, 4};
+                std::unordered_map<int, std::string> map;
+                map[1] = "hello";
+                map[2] = "world";
+                switch (k % 2) {
+                    case 0:
+                        fv = std::make_shared<ComplexFeatureValue<int>>();
+                        setValue(fv.get(), 1);
+                        break;
+                    case 1:
+                        fv = std::make_shared<ComplexFeatureValue<std::string>>();
+                        setValue(fv.get(), std::move(s));
+                        break;
+//                    case 2:
+//                        fv = std::make_shared<ComplexFeatureValue<std::vector<int>>>();
+//                        setValue(fv.get(), std::move(vec));
+//                        break;
+//                    case 3:
+//                        fv = std::make_shared<ComplexFeatureValue<std::unordered_map<int, std::string>>>();
+//                        setValue(fv.get(), std::move(map));
+//                        break;
+                    default:
+                        std::cout << "unreachable" << std::endl;
+                }
+                col.push_back(fv);
+            }
+            df2.appendColumn("test_col" + std::to_string(k), col);
+            col.clear();
+        }
+    }
+
 
     return 0;
 }
