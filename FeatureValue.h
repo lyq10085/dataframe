@@ -10,6 +10,7 @@
 #include <string_view>
 #include <string>
 #include <type_traits>
+#include "absl/types/variant.h"
 
 template<typename T>
 struct is_int : std::false_type {};
@@ -81,6 +82,7 @@ public:
     virtual ~FeatureValue() = default;
 protected:
     valType val_type_;
+    absl::variant<int, std::string, std::vector<int>, std::unordered_map<int, std::string>> data_;
     DataFrame* df{};
 };
 
@@ -122,7 +124,7 @@ public:
         return value_;
     }
     void setValue(T&& val) {
-        assert(&value_ != nullptr);
+//        assert(&value_ != nullptr);
         value_ = val;
     }
 };

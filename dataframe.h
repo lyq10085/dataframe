@@ -18,6 +18,7 @@
 #include "FeatureValue.h"
 #include <string>
 #include <iostream>
+#include <type_traits>
 
 
 using ValuePtr = FeatureValue*;
@@ -25,7 +26,7 @@ using ColumnVector = std::vector<ValuePtr>;
 
 class DataFrame {
 public:
-    DataFrame():arena_(new Arena){};
+    DataFrame():arena_(new Arena),arena_complex_(new Arena) {};
     size_t appendColumn(const std::string& name, const ColumnVector& values);
     ~DataFrame() {
         auto start = std::chrono::high_resolution_clock::now();
@@ -35,6 +36,38 @@ public:
         data_.clear();
         auto start1 = std::chrono::high_resolution_clock::now();
         delete arena_;
+
+
+        // delete arena_complex_
+        // todo: need to deconstruct inner value
+        for(auto fv : fv_index_) {
+            switch (fv.first) {
+                case FeatureValue::valType::LIST_INT: {
+                    ComplexFeatureValue<std::vector<int>> *vptr = nullptr;
+                    vptr = reinterpret_cast<ComplexFeatureValue<std::vector<int>> *>(fv.second);
+                    vptr->~ComplexFeatureValue<std::vector<int>>();
+                }
+                    break;
+                case FeatureValue::valType::MAP_INT_STRING: {
+                    ComplexFeatureValue<std::unordered_map<int, std::string>>* vptr;
+                    vptr = reinterpret_cast<ComplexFeatureValue<std::unordered_map<int, std::string>> *>(fv.second);
+                    vptr->~ComplexFeatureValue<std::unordered_map<int, std::string>>();
+                }
+                    break;
+                case FeatureValue::valType::STRING: {
+                    ComplexFeatureValue<std::string>* vptr;
+                    vptr = reinterpret_cast<ComplexFeatureValue<std::string>*>(fv.second);
+                    vptr->~ComplexFeatureValue<std::string>();
+                }
+                    break;
+                default:
+
+                    throw std::logic_error("not a non-pod object");
+            }
+        }
+        delete arena_complex_;
+
+
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> duration = end - start;
         std::chrono::duration<double, std::milli> duration2 = end - start1;
@@ -44,9 +77,19 @@ public:
 public:
     template<class T>
     ValuePtr Allocate() {
-        auto *fv = (ComplexFeatureValue<T>*)arena_->Allocate(sizeof (ComplexFeatureValue<T>));
-        fv->setValType(getValType<T>());
-        fv->df = this;
+        ComplexFeatureValue<T>* fv;
+        if(std::is_pod<T>::value) {
+            auto *buffer = arena_->Allocate(sizeof(ComplexFeatureValue<T>));
+            fv = new(buffer) ComplexFeatureValue<T>();
+            fv->setValType(getValType<T>());
+            fv->df = this;
+        } else {
+            auto* buffer = arena_complex_->Allocate(sizeof (ComplexFeatureValue<T>));
+            fv = new(buffer) ComplexFeatureValue<T>();
+            fv->setValType(getValType<T>());
+            fv->df = this;
+            fv_index_.push_back({getValType<T>(), buffer});
+        }
         return fv;
     }
     ColumnVector& addColumn(const std::string& name);
@@ -61,7 +104,9 @@ private:
     std::unordered_map<std::string, size_t> key_to_row_num_;
     std::vector<std::string> keys_;
     std::string workspace_;
-    Arena* arena_;
+    Arena* arena_; // for fv contains pod value
+    Arena* arena_complex_{}; // for fv contains non-pod value
+    std::vector<std::pair<FeatureValue::valType, char*>> fv_index_;
 };
 
 

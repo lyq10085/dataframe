@@ -2,11 +2,8 @@
 #include <vector>
 #include <unordered_map>
 #include "dataframe.h"
-#include "arena.h"
 
 int main() {
-
-
     // basic feature value test
     FeatureValue* fv1 = new ComplexFeatureValue<std::vector<int>>();
     auto vec1 = std::vector<int>{1,2,3};
@@ -119,7 +116,7 @@ int main() {
 
     {
         DataFrame df1;
-        for(size_t k = 0; k < 2; k++) {
+        for(size_t k = 0; k < 4; k++) {
             ColumnVector col;
             for (size_t i = 0; i < 100000; i++) {
                 ValuePtr fv;
@@ -132,7 +129,7 @@ int main() {
                 map[1] = "hello";
                 map[2] = "world";
                 map[3] = std::to_string(i);
-                switch (k % 2) {
+                switch (k % 4) {
                     case 0:
                         fv = df1.Allocate<int>();
                         setValue(fv, 1);
@@ -142,14 +139,14 @@ int main() {
                         s = "hello";
                         setValue(fv, std::move(s));
                         break;
-//                    case 2:
-//                        fv = df1.Allocate<std::vector<int>>();
-//                        setValue(fv, vec);
-//                        break;
-//                    case 3:
-//                        fv = df1.Allocate<std::unordered_map<int, std::string>>();
-//                        setValue(fv, map);
-//                        break;
+                    case 2:
+                        fv = df1.Allocate<std::vector<int>>();
+                        setValue(fv, std::move(vec));
+                        break;
+                    case 3:
+                        fv = df1.Allocate<std::unordered_map<int, std::string>>();
+                        setValue(fv, std::move(map));
+                        break;
                     default:
                         std::cout << "unreachable" << std::endl;
                 }
@@ -163,7 +160,7 @@ int main() {
 
     {
         OldDataFrame df2;
-        for(size_t k = 0; k < 2; k++) {
+        for(size_t k = 0; k < 4; k++) {
             OldColumnVector col;
             for (size_t i = 0; i < 100000; i++) {
                 OldValuePtr fv;
@@ -172,7 +169,7 @@ int main() {
                 std::unordered_map<int, std::string> map;
                 map[1] = "hello";
                 map[2] = "world";
-                switch (k % 2) {
+                switch (k % 4) {
                     case 0:
                         fv = std::make_shared<ComplexFeatureValue<int>>();
                         setValue(fv.get(), 1);
@@ -181,14 +178,14 @@ int main() {
                         fv = std::make_shared<ComplexFeatureValue<std::string>>();
                         setValue(fv.get(), std::move(s));
                         break;
-//                    case 2:
-//                        fv = std::make_shared<ComplexFeatureValue<std::vector<int>>>();
-//                        setValue(fv.get(), std::move(vec));
-//                        break;
-//                    case 3:
-//                        fv = std::make_shared<ComplexFeatureValue<std::unordered_map<int, std::string>>>();
-//                        setValue(fv.get(), std::move(map));
-//                        break;
+                    case 2:
+                        fv = std::make_shared<ComplexFeatureValue<std::vector<int>>>();
+                        setValue(fv.get(), std::move(vec));
+                        break;
+                    case 3:
+                        fv = std::make_shared<ComplexFeatureValue<std::unordered_map<int, std::string>>>();
+                        setValue(fv.get(), std::move(map));
+                        break;
                     default:
                         std::cout << "unreachable" << std::endl;
                 }
